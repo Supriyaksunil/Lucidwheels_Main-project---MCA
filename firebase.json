@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "lucidwheels-97704",
+          "appId": "1:972543898241:android:85a27a1318a7f9778cd380",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "lucidwheels-97704",
+          "configurations": {
+            "android": "1:972543898241:android:85a27a1318a7f9778cd380",
+            "ios": "1:972543898241:ios:0b990cf07b3b13e98cd380",
+            "macos": "1:972543898241:ios:0b990cf07b3b13e98cd380",
+            "web": "1:972543898241:web:8f94c9cb532e39ea8cd380",
+            "windows": "1:972543898241:web:a9fbd86c2cc27d948cd380"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "972543898241",
+    "project_id": "lucidwheels-97704",
+    "storage_bucket": "lucidwheels-97704.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:972543898241:android:85a27a1318a7f9778cd380",
+        "android_client_info": {
+          "package_name": "com.example.lucidwheel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwSKF-0B83pSBChaeXXBZyKWX4kyAIJKg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:972543898241:android:cd2970966df68eb68cd380",
+        "android_client_info": {
+          "package_name": "com.supriya.lucidwheels"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwSKF-0B83pSBChaeXXBZyKWX4kyAIJKg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

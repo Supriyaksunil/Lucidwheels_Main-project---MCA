@@ -1,0 +1,17 @@
+Run commands for Lucidwheel
+
+Chrome:
+.\tooling\flutter_with_temp.cmd run -d chrome
+
+Moto g32:
+.\tooling\flutter_with_temp.cmd run -d "moto g32"
+
+New phone:
+1. Check device id:
+flutter devices
+
+2. Run on the new phone:
+.\tooling\flutter_with_temp.cmd run -d <device-id>
+
+If only one phone is connected:
+.\tooling\flutter_with_temp.cmd run
