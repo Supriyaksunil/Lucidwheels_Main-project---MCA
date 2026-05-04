@@ -56,7 +56,7 @@ class EmergencyAlertProvider extends ChangeNotifier {
     _alertsSubscription?.cancel();
     _alertsSubscription = null;
 
-    if (user == null || user.role != UserRole.emergencyContact) {
+    if (user == null) {
       notifyListeners();
       return;
     }
@@ -98,7 +98,7 @@ class EmergencyAlertProvider extends ChangeNotifier {
   }
 
   void _handleIncomingAlert(EmergencyAlertRecord alert) {
-    if (_boundUser?.role != UserRole.emergencyContact) {
+    if (_boundUser == null) {
       _pendingIncomingAlert = alert;
       return;
     }
@@ -125,7 +125,12 @@ class EmergencyAlertProvider extends ChangeNotifier {
     if (user == null) {
       return 'signed-out';
     }
-    return [user.uid, user.role.storageValue, user.phone.trim()].join('|');
+    return [
+      user.uid,
+      user.role.storageValue,
+      user.phone.trim(),
+      user.email.trim().toLowerCase(),
+    ].join('|');
   }
 
   @override

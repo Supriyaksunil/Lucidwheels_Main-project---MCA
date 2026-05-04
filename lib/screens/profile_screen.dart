@@ -13,6 +13,7 @@ import '../providers/monitoring_provider.dart';
 import '../services/call_service.dart';
 import '../services/firebase_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/validators.dart';
 import '../widgets/common/animated_reveal.dart';
 import '../widgets/common/app_scaffold.dart';
 import '../widgets/common/custom_button.dart';
@@ -20,6 +21,7 @@ import '../widgets/common/custom_card.dart';
 import '../widgets/common/section_header.dart';
 import '../widgets/common/status_indicator.dart';
 import 'about_lucidwheels_screen.dart';
+import 'emergency_alerts_screen.dart';
 import 'help_support_screen.dart';
 import 'login_screen.dart';
 
@@ -325,6 +327,7 @@ class ProfileScreen extends StatelessWidget {
         : contact.relationship.trim();
     final phoneLabel =
         contact.phone.trim().isEmpty ? 'No phone number' : contact.phone.trim();
+    final emailLabel = contact.email?.trim() ?? '';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -363,6 +366,14 @@ class ProfileScreen extends StatelessWidget {
                     '$relationship - $phoneLabel',
                     style: const TextStyle(color: _secondaryText, fontSize: 12),
                   ),
+                  if (emailLabel.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      emailLabel,
+                      style:
+                          const TextStyle(color: _secondaryText, fontSize: 12),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -385,6 +396,11 @@ class ProfileScreen extends StatelessWidget {
       border: const Border.fromBorderSide(BorderSide(color: _softBorder)),
       child: Column(
         children: [
+          _buildSettingsTile(
+            Icons.notifications_active_rounded,
+            'Emergency Alerts',
+            () => _openScreen(context, const EmergencyAlertsScreen()),
+          ),
           _buildSettingsTile(
             Icons.help_center_rounded,
             'Help & Support',
@@ -540,6 +556,7 @@ class ProfileScreen extends StatelessWidget {
   void _showAddContactDialog(BuildContext context) {
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
+    final emailController = TextEditingController();
     final relationController = TextEditingController();
 
     InputDecoration fieldDecoration(String label, IconData icon) {
@@ -588,7 +605,15 @@ class ProfileScreen extends StatelessWidget {
               TextField(
                 controller: phoneController,
                 style: const TextStyle(color: _primaryText),
+                keyboardType: TextInputType.phone,
                 decoration: fieldDecoration('Phone', Icons.phone_outlined),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                style: const TextStyle(color: _primaryText),
+                keyboardType: TextInputType.emailAddress,
+                decoration: fieldDecoration('Email', Icons.email_outlined),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -616,23 +641,39 @@ class ProfileScreen extends StatelessWidget {
               if (user != null) {
                 final name = nameController.text.trim();
                 final phone = phoneController.text.trim();
+                final email = emailController.text.trim().toLowerCase();
                 final relationship = relationController.text.trim();
 
-                if (name.isEmpty || phone.isEmpty) {
+                if (name.isEmpty || phone.isEmpty || email.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Enter both a name and phone number.'),
+                      content: Text(
+                        'Enter name, phone number, and email address.',
+                      ),
                     ),
                   );
                   return;
                 }
 
-                final linkedUser = await FirebaseService()
-                    .findEmergencyContactUserByNameAndPhone(name, phone);
+                final emailValidationError = Validators.validateEmail(email);
+                if (emailValidationError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(emailValidationError)),
+                  );
+                  return;
+                }
+
+                final linkedUser =
+                    await FirebaseService().findEmergencyContactUser(
+                  name: name,
+                  phone: phone,
+                  email: email,
+                );
                 final newContact = EmergencyContact(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   name: name,
                   phone: phone,
+                  email: email,
                   relationship:
                       relationship.isEmpty ? 'Emergency Contact' : relationship,
                   userId: linkedUser?.uid,

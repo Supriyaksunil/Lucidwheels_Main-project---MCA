@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -248,14 +248,19 @@ class FirebaseService {
     return tokens.toList(growable: false);
   }
 
-  Future<UserModel?> findEmergencyContactUserByNameAndPhone(
-    String name,
-    String phone,
-  ) async {
-    final candidates = await _getUsersByMatchingPhone(phone);
+  Future<UserModel?> findEmergencyContactUser({
+    required String name,
+    String? phone,
+    String? email,
+  }) async {
+    final candidates = await _getEmergencyContactCandidates(
+      phone: phone,
+      email: email,
+    );
     return FirebaseService.selectEmergencyContactUser(
       contactName: name,
-      contactPhone: phone,
+      contactPhone: phone ?? '',
+      contactEmail: email,
       candidates: candidates,
     );
   }
@@ -263,7 +268,10 @@ class FirebaseService {
   Future<UserModel?> _resolveEmergencyContactUser(
       EmergencyContact contact) async {
     final userId = contact.userId?.trim();
-    final candidates = await _getUsersByMatchingPhone(contact.phone);
+    final candidates = await _getEmergencyContactCandidates(
+      phone: contact.phone,
+      email: contact.email,
+    );
     if (userId != null && userId.isNotEmpty) {
       final linkedUser = await getUserData(userId);
       if (linkedUser != null) {
@@ -274,6 +282,7 @@ class FirebaseService {
         final matchedUser = FirebaseService.selectEmergencyContactUser(
           contactName: contact.name,
           contactPhone: contact.phone,
+          contactEmail: contact.email,
           candidates: linkedCandidates,
           preferredUserId: linkedUser.uid,
         );
@@ -289,8 +298,39 @@ class FirebaseService {
     return FirebaseService.selectEmergencyContactUser(
       contactName: contact.name,
       contactPhone: contact.phone,
+      contactEmail: contact.email,
       candidates: candidates,
     );
+  }
+
+  Future<List<UserModel>> _getEmergencyContactCandidates({
+    String? phone,
+    String? email,
+  }) async {
+    final users = <UserModel>[];
+    final seenUserIds = <String>{};
+
+    void addUser(UserModel? user) {
+      final userId = user?.uid.trim() ?? '';
+      if (user == null || userId.isEmpty || !seenUserIds.add(userId)) {
+        return;
+      }
+      users.add(user);
+    }
+
+    final normalizedEmail = _normalizeEmail(email ?? '');
+    if (normalizedEmail.isNotEmpty) {
+      addUser(await getUserByEmail(normalizedEmail));
+    }
+
+    final rawPhone = phone?.trim() ?? '';
+    if (rawPhone.isNotEmpty) {
+      for (final user in await _getUsersByMatchingPhone(rawPhone)) {
+        addUser(user);
+      }
+    }
+
+    return users;
   }
 
   Future<List<UserModel>> _getUsersByMatchingPhone(String phone) async {
@@ -459,13 +499,11 @@ class FirebaseService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final sessions = snapshot.docs
-          .map((doc) {
-            final data = Map<String, dynamic>.from(doc.data());
-            data['sessionId'] = data['sessionId'] ?? doc.id;
-            return MonitoringSession.fromMap(data);
-          })
-          .toList();
+      final sessions = snapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
+        data['sessionId'] = data['sessionId'] ?? doc.id;
+        return MonitoringSession.fromMap(data);
+      }).toList();
       sessions.sort((a, b) => b.startTime.compareTo(a.startTime));
       return sessions;
     });
@@ -984,13 +1022,11 @@ class FirebaseService {
           .where('userId', whereIn: uniqueDriverIds)
           .snapshots()
           .map((snapshot) {
-        final sessions = snapshot.docs
-            .map((doc) {
-            final data = Map<String, dynamic>.from(doc.data());
-            data['sessionId'] = data['sessionId'] ?? doc.id;
-            return MonitoringSession.fromMap(data);
-          })
-            .toList();
+        final sessions = snapshot.docs.map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['sessionId'] = data['sessionId'] ?? doc.id;
+          return MonitoringSession.fromMap(data);
+        }).toList();
         sessions.sort((a, b) => b.startTime.compareTo(a.startTime));
         return sessions;
       });
@@ -1143,6 +1179,7 @@ class FirebaseService {
   static UserModel? selectEmergencyContactUser({
     required String contactName,
     required String contactPhone,
+    String? contactEmail,
     required List<UserModel> candidates,
     String? preferredUserId,
   }) {
@@ -1150,8 +1187,16 @@ class FirebaseService {
       return null;
     }
 
+    final normalizedContactEmail =
+        normalizeEmailForMatching(contactEmail ?? '');
     final normalizedContactPhone = normalizePhoneForMatching(contactPhone);
     final preferredId = preferredUserId?.trim() ?? '';
+    final emailMatches = normalizedContactEmail.isEmpty
+        ? <UserModel>[]
+        : candidates.where((candidate) {
+            return normalizeEmailForMatching(candidate.email) ==
+                normalizedContactEmail;
+          }).toList();
     final phoneMatches = normalizedContactPhone.isEmpty
         ? <UserModel>[]
         : candidates.where((candidate) {
@@ -1164,12 +1209,20 @@ class FirebaseService {
         if (candidate.uid != preferredId) {
           continue;
         }
-        if (normalizedContactPhone.isEmpty ||
+        final emailMatchesCandidate = normalizedContactEmail.isEmpty ||
+            normalizeEmailForMatching(candidate.email) ==
+                normalizedContactEmail;
+        final phoneMatchesCandidate = normalizedContactPhone.isEmpty ||
             normalizePhoneForMatching(candidate.phone) ==
-                normalizedContactPhone) {
+                normalizedContactPhone;
+        if (emailMatchesCandidate || phoneMatchesCandidate) {
           return candidate;
         }
       }
+    }
+
+    if (emailMatches.length == 1) {
+      return emailMatches.first;
     }
 
     for (final candidate in phoneMatches) {
@@ -1202,6 +1255,11 @@ class FirebaseService {
   }
 
   @visibleForTesting
+  static String normalizeEmailForMatching(String value) {
+    return value.trim().toLowerCase();
+  }
+
+  @visibleForTesting
   static String normalizePhoneForMatching(String value) {
     return value.replaceAll(RegExp(r'[^0-9]'), '');
   }
@@ -1228,8 +1286,11 @@ class FirebaseService {
         ? manager.email.trim()
         : manager.fullName.trim();
     final managerPhone = manager.phone.trim();
+    final managerEmail = _normalizeEmail(manager.email);
     if (managerName.isEmpty ||
-        (managerPhone.isEmpty && manager.uid.trim().isEmpty)) {
+        (managerPhone.isEmpty &&
+            managerEmail.isEmpty &&
+            manager.uid.trim().isEmpty)) {
       return contacts;
     }
 
@@ -1238,6 +1299,8 @@ class FirebaseService {
       (contact) =>
           contact.id == contactId ||
           contact.userId == manager.uid ||
+          (_normalizeEmail(contact.email ?? '') == managerEmail &&
+              managerEmail.isNotEmpty) ||
           (contact.name == managerName && contact.phone == managerPhone),
     );
     if (alreadyExists) {
@@ -1250,6 +1313,7 @@ class FirebaseService {
         id: contactId,
         name: managerName,
         phone: managerPhone,
+        email: managerEmail.isEmpty ? null : managerEmail,
         relationship: 'Fleet Manager',
         userId: manager.uid,
       ),
@@ -1278,6 +1342,7 @@ class FirebaseService {
           id: contact.id,
           name: contact.name,
           phone: contact.phone,
+          email: contact.email,
           relationship: contact.relationship,
           userId: linkedUser?.uid,
           fcmToken: resolvedToken ?? _cleanNotificationToken(contact.fcmToken),
@@ -1313,4 +1378,3 @@ class FirebaseService {
     return null;
   }
 }
-

@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     final activeAlert = emergencyAlertProvider.activeAlert;
-    if (user.role != UserRole.emergencyContact || activeAlert == null) {
+    if (activeAlert == null) {
       return shell;
     }
 

@@ -60,7 +60,7 @@ class EmergencyAlertsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SectionHeader(
-                      title: 'Emergency Contact Inbox',
+                      title: 'Emergency Alert Inbox',
                       subtitle:
                           'Live emergency alerts with driver location links',
                       leadingIcon: Icons.notification_important_rounded,

@@ -191,6 +191,7 @@ class EmergencyContact {
   final String id;
   final String name;
   final String phone;
+  final String? email;
   final String relationship;
   final String? userId;
   final String? fcmToken;
@@ -199,6 +200,7 @@ class EmergencyContact {
     required this.id,
     required this.name,
     required this.phone,
+    this.email,
     required this.relationship,
     this.userId,
     this.fcmToken,
@@ -209,6 +211,7 @@ class EmergencyContact {
       'id': id,
       'name': name,
       'phone': phone,
+      'email': email,
       'relationship': relationship,
       'userId': userId,
       'fcmToken': fcmToken,
@@ -220,6 +223,7 @@ class EmergencyContact {
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
       phone: map['phone']?.toString() ?? '',
+      email: _parseOptionalString(map['email']),
       relationship: map['relationship']?.toString() ?? '',
       userId: _parseOptionalString(map['userId']),
       fcmToken: _parseOptionalString(map['fcmToken']),
@@ -230,6 +234,7 @@ class EmergencyContact {
     String? id,
     String? name,
     String? phone,
+    String? email,
     String? relationship,
     String? userId,
     String? fcmToken,
@@ -238,6 +243,7 @@ class EmergencyContact {
       id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
+      email: email ?? this.email,
       relationship: relationship ?? this.relationship,
       userId: userId ?? this.userId,
       fcmToken: fcmToken ?? this.fcmToken,

@@ -146,6 +146,39 @@ void main() {
         isFalse,
       );
     });
+
+    test('links a contact account by matching email', () {
+      final matchedUser = FirebaseService.selectEmergencyContactUser(
+        contactName: 'Dad',
+        contactPhone: '+1 555 000 0000',
+        contactEmail: 'john@example.com',
+        candidates: [emergencyContactUser],
+      );
+
+      expect(matchedUser?.uid, emergencyContactUser.uid);
+    });
+
+    test('prefers an exact email match over ambiguous phone matches', () {
+      final phoneOnlyUser = UserModel(
+        uid: 'contact-2',
+        firstName: 'Jake',
+        lastName: 'Public',
+        email: 'jake@example.com',
+        phone: '+1 (555) 123-4567',
+        role: UserRole.personal,
+        createdAt: DateTime(2025, 1, 1),
+      );
+
+      final matchedUser = FirebaseService.selectEmergencyContactUser(
+        contactName: 'Dad',
+        contactPhone: '+1 555 123 4567',
+        contactEmail: 'john@example.com',
+        candidates: [phoneOnlyUser, emergencyContactUser],
+      );
+
+      expect(matchedUser?.uid, emergencyContactUser.uid);
+    });
+
     test('falls back to a unique emergency contact account on phone match', () {
       final matchedUser = FirebaseService.selectEmergencyContactUser(
         contactName: 'Dad',
